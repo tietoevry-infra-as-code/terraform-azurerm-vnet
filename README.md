@@ -22,7 +22,7 @@ Following example to create a virtual network with subnets and network watcher r
 
 ```
 module "virtualnetwork" {
-  source                  = "github.com/tietoevry-cloud-infra/terraform-azurerm-vnet?ref=v1.1.0"
+  source                  = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.0.0"
   create_resource_group   = false
 
 # Using Custom names and VNet/subnet Address Prefix (Recommended)
@@ -95,6 +95,10 @@ Name | Description
 `subnet_address_prefixes` | List of address prefix for  subnets
 `ddos_protection_plan` | Azure Network DDoS protection plan
 `network_watcher_id` | ID of Network Watcher
+
+## Resource Graph
+
+![Resource Graph](graph.png)
 
 ## Authors
 
