@@ -16,12 +16,10 @@ These types of resources are supported:
 
 ## Module Usage
 
-## Basic VNet
-
-Following example to create a virtual network with subnets and network watcher resources.
+Following example to create a virtual network with subnets, DDoS protection plan, and network watcher resources.
 
 ```
-module "virtualnetwork" {
+module "vnet" {
   source                  = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.0.0"
   create_resource_group   = false
 
@@ -29,14 +27,19 @@ module "virtualnetwork" {
   resource_group_name     = "rg-demo-westeurope-01"
   vnetwork_name           = "vnet-demo-westeurope-001"
   location                = "westeurope"
+  vnet_address_space      = ["10.1.0.0/16"]
+  private_subnets         = ["snet-app01","snet-app01"]
+  subnet_address_prefix   = ["10.1.2.0/24","10.1.3.0/24"]
+
+# Adding Network watcher, and custom DNS servers (Optional)
+  create_ddos_plan        = false
+  dns_servers             = []
 
 # Adding TAG's to your Azure resources (Required)
-  tags                    = {
-    application_name      = "demoapp01"
-    owner_email           = "user@example.com"
-    business_unit         = "publiccloud"
-    costcenter_id         = "5847596"
-    environment           = "development"
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+    Owner       = "test-user"
   }
 }
 ```
@@ -64,6 +67,29 @@ It is also possible to add other routes to the associated route tables outside o
 This module handle the provision of Network Watcher. Note that you cannot create more than one network watcher resource per subscription in any region.
 
 By default, this enabled. You can exclude this from the Terraform plan using `create_network_watcher = false` argument in case you already have a network watcher available in your subscription.
+
+## Adding TAG's to your Azure resources
+
+Use tags to organize your Azure resources and management hierarchy. You can apply tags to your Azure resources, resource groups, and subscriptions to logically organize them into a taxonomy. Each tag consists of a name and a value pair. For example, you can apply the name "Environment" and the value "Production" to all the resources in production. You can manage these values variables directly or mapping as a variable using `variables.tf`.
+
+All network resources which support tagging can be tagged by specifying key-values in argument `tags`. Tag Name is added automatically on all resources. For example, you can specify `tags` like this as per environment:
+
+```
+module "vnet" {
+  source        = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.0.0"
+
+  # Resource Group
+  create_resource_group   = false
+
+  # ... omitted
+
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+    Owner       = "test-user"
+  }
+}  
+```
 
 ## Inputs
 

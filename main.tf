@@ -1,5 +1,5 @@
 #---------------------------------------------------------
-# Resource Group Creation or selection - Default is "true"
+# Resource Group Creation or selection - Default is "false"
 #----------------------------------------------------------
 locals {
   resource_group_name = element(
@@ -11,12 +11,12 @@ locals {
   virtual_network_name = element(
     concat(azurerm_virtual_network.vnet.*.name, [""]), 0)
 
-  if_ddos_enabled = var.create_ddos_plan ? [{}] : []  
+  if_ddos_enabled = var.create_ddos_plan ? [{}] : []
 }
 
 data "azurerm_resource_group" "rgrp" {
-  count = var.create_resource_group == false ? 1 : 0
-  name = var.resource_group_name
+  count                 = var.create_resource_group == false ? 1 : 0
+  name                  = var.resource_group_name
 }
 
 resource "azurerm_resource_group" "rg" {
@@ -74,7 +74,7 @@ resource "azurerm_subnet" "snets" {
 }
 
 #-------------------------------------
-# Network Watcher - Default is "false"
+# Network Watcher - Default is "true"
 #-------------------------------------
 resource "azurerm_network_watcher" "nwatcher" {
   count                 = var.create_network && var.create_network_watcher ? 1 : 0
