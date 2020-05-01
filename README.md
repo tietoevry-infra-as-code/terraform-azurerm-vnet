@@ -77,8 +77,6 @@ All network resources which support tagging can be tagged by specifying key-valu
 ```
 module "vnet" {
   source        = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.0.0"
-
-  # Resource Group
   create_resource_group   = false
 
   # ... omitted
