@@ -19,7 +19,7 @@ Following example to create a virtual network with subnets, NSG, DDoS protection
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # Using Custom names and VNet/subnet Address Prefix (Recommended)
   create_resource_group = true
@@ -96,7 +96,7 @@ This module supports enabling the service endpoint of your choosing under the vi
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # .... omitted
 
@@ -123,7 +123,7 @@ This module supports enabling the service delegation of your choosing under the 
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # .... omitted
 
@@ -156,7 +156,7 @@ This module Enable or Disable network policies for the private link endpoint on 
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # .... omitted
 
@@ -185,7 +185,7 @@ This module Enable or Disable network policies for the private link service on t
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # .... omitted
 
@@ -220,7 +220,7 @@ For `source_address_prefix` argument provide CIDR or source IP range or * to mat
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # .... omitted
 
@@ -249,7 +249,7 @@ All Azure resources which support tagging can be tagged by specifying key-values
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
   create_resource_group   = false
 
   # ... omitted

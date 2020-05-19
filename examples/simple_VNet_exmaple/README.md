@@ -8,7 +8,7 @@ Following example to create a simple virtual network with subnets and network wa
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # Using Custom names and VNet/subnet Address Prefix (Recommended)
   create_resource_group = true
