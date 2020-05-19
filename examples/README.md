@@ -34,7 +34,7 @@ All Azure resources which support tagging can be tagged by specifying key-values
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.0.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
   create_resource_group   = false
 
   # ... omitted
@@ -55,7 +55,7 @@ Following example to create a virtual network with subnets and network watcher r
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.0.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
 
   # Using Custom names and VNet/subnet Address Prefix (Recommended)
   create_resource_group = true
@@ -93,7 +93,7 @@ Following example to create a virtual network with subnets, NSG, DDoS protection
 
 ```
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.0.0"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.2.0"
 
   # Using Custom names and VNet/subnet Address Prefix (Recommended)
   create_resource_group = true
