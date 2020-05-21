@@ -36,26 +36,17 @@ output "virtual_network_address_space" {
 
 output "subnet_ids" {
   description = "List of IDs of subnets"
-  value = {
-    for s in azurerm_subnet.snet :
-    s.name => s.id
-  }
+  value       = [for s in azurerm_subnet.snet : s.id]
 }
 
 output "subnet_address_prefixes" {
   description = "List of address prefix for subnets"
-  value = {
-    for s in azurerm_subnet.snet :
-    s.name => s.address_prefix
-  }
+  value       = [for s in azurerm_subnet.snet : s.address_prefix]
 }
 
 output "network_security_group_ids" {
   description = "List of Network security groups and ids"
-  value = {
-    for n in azurerm_network_security_group.nsg :
-    n.name => n.id
-  }
+  value       = [for n in azurerm_network_security_group.nsg : n.id]
 }
 
 output "network_security_group" {
