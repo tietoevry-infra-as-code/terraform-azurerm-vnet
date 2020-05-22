@@ -22,15 +22,15 @@ module "vnet" {
   source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # Using Custom names and VNet/subnet Address Prefix (Recommended)
-  create_resource_group = true
+  create_resource_group = false
   resource_group_name   = "rg-demo-westeurope-01"
-  vnetwork_name         = "vnet-demo-westeurope-001"aa
+  vnetwork_name         = "vnet-demo-westeurope-001"
   location              = "westeurope"
   vnet_address_space    = ["10.1.0.0/16"]
 
-  # Adding Network watcher, and custom DNS servers (Optional)
-  create_ddos_plan = false
-  dns_servers      = ["8.8.8.8", "4.4.4.4"]
+  # Adding Standard DDoS Plan, and custom DNS servers (Optional)
+  create_ddos_plan = true
+  dns_servers      = []
 
   # Multiple Subnets, Service delegation, Service Endpoints, Network security groups
   subnets = {
@@ -44,11 +44,15 @@ module "vnet" {
           actions = ["Microsoft.Network/virtualNetworks/subnets/join/action", "Microsoft.Network/virtualNetworks/subnets/prepareNetworkPolicies/action"]
         }
       }
-      nsg_inbound_rule = [
-        # [name, priority, destination_port_range, source_address_prefix]"
-        ["weballow", "100", "80", "*", ],
-        ["weballow1", "101", "443", "*", ],
-        ["weballow2", "102", "8080-8090", "*", ],
+      nsg_inbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
+        ["weballow", "100", "Inbound", "Allow", "Tcp", "80", "*"],
+        ["weballow1", "101", "Inbound", "Allow", "Tcp", "443", "*"],
+        ["weballow2", "102", "Inbound", "Allow", "Tcp", "8080-8090", "*"],
+      ]
+
+      nsg_outbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
       ]
     }
 
@@ -57,14 +61,19 @@ module "vnet" {
       subnet_address_prefix = "10.1.3.0/24"
       service_endpoints     = ["Microsoft.Storage"]
 
-      nsg_inbound_rule = [
-        # [name, priority, destination_port_range, source_address_prefix]"
-        ["weballow", "100", "80", "*", ],
-        ["weballow1", "101", "443", "AzureLoadBalancer", ],
-        ["weballow2", "102", "8080", "VirtualNetwork", ],
+      nsg_inbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
+        ["weballow", "100", "Inbound", "Allow", "Tcp", "80", "*"],
+        ["weballow1", "101", "Inbound", "Allow", "Tcp", "443", "AzureLoadBalancer"],
+        ["weballow2", "102", "Inbound", "Allow", "Tcp", "9090", "VirtualNetwork"],
+      ]
+
+      nsg_outbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
       ]
     }
   }
+
   # Adding TAG's to your Azure resources (Required)
   tags = {
     Terraform   = "true"
@@ -76,7 +85,7 @@ module "vnet" {
 
 ## Create resource group
 
-By default, this module will not create a resource group and the name of an existing resource group to be given in an argument `create_resource_group`. If you want to create a new resource group, set the argument `create_resource_group = true`.
+By default, this module will not create a resource group and the name of an existing resource group to be given in an argument `resource_group_name`. If you want to create a new resource group, set the argument `create_resource_group = true`.
 
 *If you are using an existing resource group, then this module uses the same resource group location to create all resources in this module.*
 
@@ -86,7 +95,9 @@ By default, this module will not create a DDoS Protection Plan. You can enable i
 
 ## Subnets
 
-This module handles the creation and a list of address spaces for subnets. The subnet creation is using `for_each` to create subnets and corresponding service endpoints, service delegation, and network security groups. This module associates the subnets to network security groups as well.  It is also possible to add other routes to the associated route tables outside of this module.
+This module handles the creation and a list of address spaces for subnets. The subnet creation is using `for_each` to create subnets and corresponding service endpoints, service delegation, and network security groups. This module associates the subnets to network security groups as well.  
+
+It is also possible to add other routes to the associated route tables outside of this module.
 
 ## Virtual Network service endpoints
 
@@ -214,7 +225,7 @@ By default, this enabled to create the necessary resources in that region. You c
 
 ## Network Security Groups
 
-By default, the network security groups connected to Management and ApplicationGateway will only allow necessary traffic and block everything else (deny-all rule). Use the `nsg_inbound_rule` in this Terraform module creates a Network Security Group (NSG) for each subnet and allow to add additional rules for inbound flows.
+By default, the network security groups connected to Management and ApplicationGateway will only allow necessary traffic and block everything else (deny-all rule). Use `nsg_inbound_rules` and `nsg_outbound_rules` in this Terraform module to create a Network Security Group (NSG) for each subnet and allow it to add additional rules for inbound flows.
 
 For `source_address_prefix` argument provide CIDR or source IP range or * to match any IP. Tags such as `VirtualNetwork`, `AzureLoadBalancer` and `Internet` can also be used. 
 
@@ -230,11 +241,15 @@ module "vnet" {
       subnet_name           = "snet-gw01"
       subnet_address_prefix = "10.1.2.0/24"
 
-      nsg_inbound_rule = [
-        # [name, priority, destination_port_range, source_address_prefix]"
-        ["weballow", "100", "80", "*", ],
-        ["weballow1", "101", "443", "AzureLoadBalancer", ],
-        ["weballow2", "102", "8080", "VirtualNetwork", ],
+      nsg_inbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
+        ["weballow", "100", "Inbound", "Allow", "Tcp", "80", "*"],
+        ["weballow1", "101", "Inbound", "Allow", "Tcp", "443", "*"],
+        ["weballow2", "102", "Inbound", "Allow", "Tcp", "8080-8090", "*"],
+      ]
+
+      nsg_outbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
       ]
     }
   }
@@ -278,6 +293,7 @@ Name | Description | Type | Default
 `delegation`|defines a subnet delegation feature. takes an object as described in the following example|object|`{}`
 `service_endpoints`|service endpoints for the virtual subnet|object|`{}`
 `nsg_inbound_rule`|network security groups settings - a NSG is always created for each subnet|object|`{}`
+`nsg_outbound_rule`|network security groups settings - a NSG is always created for each subnet|object|`{}`
 `create_ddos_plan` | Controls if DDoS protection plan should be created | string | `"false"`
 `ddos_plan_name`|Name of Azure Network DDoS protection plan| string | `""`
 `create_network_watcher`|Controls if Network Watcher resources should be created for the Azure subscription |string|`"true"`

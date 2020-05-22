@@ -11,7 +11,7 @@ module "vnet" {
   source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # Using Custom names and VNet/subnet Address Prefix (Recommended)
-  create_resource_group = true
+  create_resource_group = false
   resource_group_name   = "rg-demo-westeurope-01"
   vnetwork_name         = "vnet-demo-westeurope-001"
   location              = "westeurope"

@@ -19,9 +19,9 @@ resource "azurerm_resource_group" "rg" {
   tags     = merge({ "Name" = format("%s", var.resource_group_name) }, var.tags, )
 }
 
-#-----------------------------------
+#-------------------------------------
 # VNET Creation - Default is "true"
-#-----------------------------------
+#-------------------------------------
 
 resource "azurerm_virtual_network" "vnet" {
   name                = var.vnetwork_name
@@ -100,16 +100,16 @@ resource "azurerm_network_security_group" "nsg" {
   location            = local.location
   tags                = merge({ "Name" = format("%s", each.key) }, var.tags, )
   dynamic "security_rule" {
-    for_each = concat(lookup(each.value, "nsg_inbound_rule", []))
+    for_each = concat(lookup(each.value, "nsg_inbound_rules", []), lookup(each.value, "nsg_outbound_rules", []))
     content {
       name                       = security_rule.value[0]
       priority                   = security_rule.value[1]
-      direction                  = "Inbound"
-      access                     = "Allow"
-      protocol                   = "Tcp"
+      direction                  = security_rule.value[2]
+      access                     = security_rule.value[3]
+      protocol                   = security_rule.value[4]
       source_port_range          = "*"
-      destination_port_range     = security_rule.value[2]
-      source_address_prefix      = security_rule.value[3]
+      destination_port_range     = security_rule.value[5]
+      source_address_prefix      = security_rule.value[6]
       destination_address_prefix = each.value.subnet_address_prefix
     }
   }

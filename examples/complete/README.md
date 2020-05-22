@@ -11,17 +11,17 @@ module "vnet" {
   source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
 
   # Using Custom names and VNet/subnet Address Prefix (Recommended)
-  create_resource_group = true
+  create_resource_group = false
   resource_group_name   = "rg-demo-westeurope-01"
   vnetwork_name         = "vnet-demo-westeurope-001"
   location              = "westeurope"
   vnet_address_space    = ["10.1.0.0/16"]
 
-  # Adding Network watcher, and custom DNS servers (Optional)
-  create_ddos_plan = false
-  dns_servers      = ["8.8.8.8", "4.4.4.4"]
+  # Adding Standard DDoS Plan, and custom DNS servers (Optional)
+  create_ddos_plan = true
+  dns_servers      = []
 
-  # Multiple Subnets, Service delegation, Service Endpoints, Network security groups, and private link network policies
+  # Multiple Subnets, Service delegation, Service Endpoints, Network security groups
   subnets = {
     gw_subnet = {
       subnet_name           = "snet-gw01"
@@ -33,11 +33,15 @@ module "vnet" {
           actions = ["Microsoft.Network/virtualNetworks/subnets/join/action", "Microsoft.Network/virtualNetworks/subnets/prepareNetworkPolicies/action"]
         }
       }
-      nsg_inbound_rule = [
-        # [name, priority, destination_port_range, source_address_prefix]"
-        ["weballow", "100", "80", "*", ],
-        ["weballow1", "101", "443", "*", ],
-        ["weballow2", "102", "8080-8090", "*", ],
+      nsg_inbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
+        ["weballow", "100", "Inbound", "Allow", "Tcp", "80", "*"],
+        ["weballow1", "101", "Inbound", "Allow", "Tcp", "443", "*"],
+        ["weballow2", "102", "Inbound", "Allow", "Tcp", "8080-8090", "*"],
+      ]
+
+      nsg_outbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
       ]
     }
 
@@ -46,14 +50,19 @@ module "vnet" {
       subnet_address_prefix = "10.1.3.0/24"
       service_endpoints     = ["Microsoft.Storage"]
 
-      nsg_inbound_rule = [
-        # [name, priority, destination_port_range, source_address_prefix]"
-        ["weballow", "100", "80", "*", ],
-        ["weballow1", "101", "443", "AzureLoadBalancer", ],
-        ["weballow2", "102", "8080", "VirtualNetwork", ],
+      nsg_inbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
+        ["weballow", "100", "Inbound", "Allow", "Tcp", "80", "*"],
+        ["weballow1", "101", "Inbound", "Allow", "Tcp", "443", "AzureLoadBalancer"],
+        ["weballow2", "102", "Inbound", "Allow", "Tcp", "9090", "VirtualNetwork"],
+      ]
+
+      nsg_outbound_rules = [
+        # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix]
       ]
     }
   }
+
   # Adding TAG's to your Azure resources (Required)
   tags = {
     Terraform   = "true"
@@ -61,7 +70,6 @@ module "vnet" {
     Owner       = "test-user"
   }
 }
-
 ```
 
 ## Terraform Usage
