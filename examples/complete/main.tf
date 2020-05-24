@@ -1,6 +1,6 @@
 module "vnet" {
-  //source = "github.com/kumarvit/terraform-azurerm-vnet"
-  source = "../.."
+  source = "github.com/kumarvit/terraform-azurerm-vnet"
+
   # Using Custom names and VNet/subnet Address Prefix (Recommended)
   create_resource_group = false
   resource_group_name   = "rg-demo-westeurope-01"
@@ -28,7 +28,7 @@ module "vnet" {
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any values.
         ["weballow", "100", "Inbound", "Allow", "Tcp", "80", "*", "0.0.0.0/0"],
-        ["weballow1", "101", "Inbound", "Allow", "", "443", "*", ""],
+        ["", "101", "Inbound", "Allow", "", "443", "*", ""],
         ["weballow2", "102", "Inbound", "Allow", "Tcp", "8080-8090", "*", ""],
       ]
 
