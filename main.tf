@@ -1,5 +1,5 @@
 #---------------------------------------------------------
-# Resource Group Creation or selection - Default is "false"
+# Resource Group Creation or selection - Default is "true"
 #----------------------------------------------------------
 locals {
   resource_group_name = element(coalescelist(data.azurerm_resource_group.rgrp.*.name, azurerm_resource_group.rg.*.name, [""]), 0)
@@ -16,7 +16,7 @@ resource "azurerm_resource_group" "rg" {
   count    = var.create_resource_group ? 1 : 0
   name     = var.resource_group_name
   location = var.location
-  tags     = merge({ "Name" = format("%s", var.resource_group_name) }, var.tags, )
+  tags     = merge({ "ResourceName" = format("%s", var.resource_group_name) }, var.tags, )
 }
 
 #-------------------------------------
@@ -24,12 +24,12 @@ resource "azurerm_resource_group" "rg" {
 #-------------------------------------
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = var.vnetwork_name
+  name                = lower("vnet-${var.project_name}-${var.subscription_type}-${var.environment}-${local.location}-01")
   location            = local.location
   resource_group_name = local.resource_group_name
   address_space       = var.vnet_address_space
   dns_servers         = var.dns_servers
-  tags                = merge({ "Name" = format("%s", var.vnetwork_name) }, var.tags, )
+  tags                = merge({ "ResourceName" = lower("vnet-${var.project_name}-${var.subscription_type}-${var.environment}-${local.location}-01") }, var.tags, )
 
   dynamic "ddos_protection_plan" {
     for_each = local.if_ddos_enabled
@@ -47,34 +47,41 @@ resource "azurerm_virtual_network" "vnet" {
 
 resource "azurerm_network_ddos_protection_plan" "ddos" {
   count               = var.create_ddos_plan ? 1 : 0
-  name                = var.ddos_plan_name
+  name                = lower("${var.project_name}-ddos-protection-plan-${var.subscription_type}")
   resource_group_name = local.resource_group_name
   location            = local.location
-  tags                = merge({ "Name" = format("%s", var.ddos_plan_name) }, var.tags, )
+  tags                = merge({ "ResourceName" = lower("${var.project_name}-ddos-protection-plan-${var.subscription_type}") }, var.tags, )
 }
 
 #-------------------------------------
 # Network Watcher - Default is "true"
 #-------------------------------------
 
-resource "azurerm_network_watcher" "nwatcher" {
-  count               = var.create_network_watcher ? 1 : 0
-  name                = var.netwatcher_name
-  location            = local.location
-  resource_group_name = local.resource_group_name
-  tags                = merge({ "Name" = format("%s", var.netwatcher_name) }, var.tags, )
+resource "azurerm_resource_group" "nwatcher" {
+  count    = var.create_network_watcher != false ? 1 : 0
+  name     = "NetworkWatcherRG"
+  location = local.location
+  tags     = merge({ "ResourceName" = "NetworkWatcherRG" }, var.tags, )
 }
 
+resource "azurerm_network_watcher" "nwatcher" {
+  count               = var.create_network_watcher != false ? 1 : 0
+  name                = "NetworkWatcher_${local.location}"
+  location            = local.location
+  resource_group_name = azurerm_resource_group.nwatcher.0.name
+  tags                = merge({ "ResourceName" = format("%s", "NetworkWatcher_${local.location}") }, var.tags, )
+}
 #--------------------------------------------
 # Subnets Creation - Depends on VNET Resource
 #--------------------------------------------
 resource "azurerm_subnet" "snet" {
-  for_each                                       = var.subnets
-  name                                           = each.value.subnet_name
-  resource_group_name                            = local.resource_group_name
-  virtual_network_name                           = azurerm_virtual_network.vnet.name
-  address_prefix                                 = each.value.subnet_address_prefix
-  service_endpoints                              = lookup(each.value, "service_endpoints", [])
+  for_each             = var.subnets
+  name                 = lower(format("snet-%s-${var.subscription_type}-${local.location}", each.value.subnet_name))
+  resource_group_name  = local.resource_group_name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = each.value.subnet_address_prefix
+  service_endpoints    = lookup(each.value, "service_endpoints", [])
+  # Applicable to the subnets which used for Private link endpoints or services 
   enforce_private_link_endpoint_network_policies = lookup(each.value, "enforce_private_link_endpoint_network_policies", null)
   enforce_private_link_service_network_policies  = lookup(each.value, "enforce_private_link_service_network_policies", null)
 
@@ -91,14 +98,14 @@ resource "azurerm_subnet" "snet" {
 }
 
 #-----------------------------------------------
-# Network security group - Default is "false"
+# Network security group - Default is "true"
 #-----------------------------------------------
 resource "azurerm_network_security_group" "nsg" {
   for_each            = var.subnets
-  name                = "nsg_${each.key}_in"
+  name                = lower("nsg_${each.key}_in")
   resource_group_name = local.resource_group_name
   location            = local.location
-  tags                = merge({ "Name" = format("%s", each.key) }, var.tags, )
+  tags                = merge({ "ResourceName" = lower("nsg_${each.key}_in") }, var.tags, )
   dynamic "security_rule" {
     for_each = concat(lookup(each.value, "nsg_inbound_rules", []), lookup(each.value, "nsg_outbound_rules", []))
     content {
@@ -109,8 +116,8 @@ resource "azurerm_network_security_group" "nsg" {
       protocol                   = security_rule.value[4] == "" ? "Tcp" : security_rule.value[4]
       source_port_range          = "*"
       destination_port_range     = security_rule.value[5] == "" ? "*" : security_rule.value[5]
-      source_address_prefix      = security_rule.value[6] == "" ? each.value.subnet_address_prefix : security_rule.value[6]
-      destination_address_prefix = security_rule.value[7] == "" ? each.value.subnet_address_prefix : security_rule.value[7]
+      source_address_prefix      = security_rule.value[6] == "" ? element(each.value.subnet_address_prefix, 0) : security_rule.value[6]
+      destination_address_prefix = security_rule.value[7] == "" ? element(each.value.subnet_address_prefix, 0) : security_rule.value[7]
       description                = "${security_rule.value[2]}_Port_${security_rule.value[5]}"
     }
   }

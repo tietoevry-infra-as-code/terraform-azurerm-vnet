@@ -49,11 +49,6 @@ output "network_security_group_ids" {
   value       = [for n in azurerm_network_security_group.nsg : n.id]
 }
 
-output "network_security_group" {
-  description = "Network security group details"
-  value       = azurerm_network_security_group.nsg
-}
-
 # DDoS Protection Plan
 output "ddos_protection_plan" {
   description = "Ddos protection plan details"
