@@ -1,6 +1,6 @@
-# Virtual Network resource creation example
+# Azure Virtual Network Terraform Module
 
-Configuration in this directory creates a set of Azure network resources. Few of these resources added/excluded as per your requirement.
+This Terraform Module is designed to quickly deploy VNet, Subnets with NSG, service endpoints and delegations. Further security hardening would be recommend to add appropriate NSG rules to use this for any production workloads.
 
 ## Module Usage
 
