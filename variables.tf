@@ -13,21 +13,6 @@ variable "location" {
   default     = "westeurope"
 }
 
-variable "project_name" {
-  description = "The name of the project."
-  default     = ""
-}
-
-variable "subscription_type" {
-  description = "Summary description of the purpose of the subscription that contains the resource. Often broken down by deployment environment type or specific workloads"
-  default     = ""
-}
-
-variable "environment" {
-  description = "The stage of the development lifecycle for the workload that the resource supports"
-  default     = ""
-}
-
 variable "vnetwork_name" {
   description = "Name of your Azure Virtual Network"
   default     = "vnet-azure-westeurope-001"
@@ -58,14 +43,33 @@ variable "create_network_watcher" {
   default     = true
 }
 
-variable "netwatcher_name" {
-  description = "The name of the Network Watcher"
-  default     = "demo-nwwatcher"
-}
-
 variable "subnets" {
   description = "For each subnet, create an object that contain fields"
   default     = {}
+}
+
+variable "gateway_subnet_address_prefix" {
+  description = "The address prefix to use for the gateway subnet"
+  default     = null
+}
+
+variable "firewall_subnet_address_prefix" {
+  description = "The address prefix to use for the Firewall subnet"
+  default     = null
+}
+
+variable "firewall_service_endpoints" {
+  description = "Service endpoints to add to the firewall subnet"
+  type        = list(string)
+  default = [
+    "Microsoft.AzureActiveDirectory",
+    "Microsoft.AzureCosmosDB",
+    "Microsoft.EventHub",
+    "Microsoft.KeyVault",
+    "Microsoft.ServiceBus",
+    "Microsoft.Sql",
+    "Microsoft.Storage",
+  ]
 }
 
 variable "tags" {

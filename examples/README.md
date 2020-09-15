@@ -1,6 +1,6 @@
-# Azure Virtual Network Terraform Module
+# Virtual Network resource creation example
 
-This Terraform Module is designed to quickly deploy VNet, Subnets with NSG, service endpoints and delegations. Further security hardening would be recommend to add appropriate NSG rules to use this for any production workloads.
+Terraform Module to create a set of Azure network resources. Few of these resources added/excluded as per your requirement.
 
 ## Module Usage
 
@@ -10,38 +10,45 @@ Following example to create a virtual network with subnets and network watcher r
 
 ```hcl
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
+  source  = "kumarvna/vnet/azurerm"
+  version = "2.0.0"
 
-  # Using Custom names and VNet/subnet Address Prefix (Recommended)
-  resource_group_name = "rg-tieto-internal-shared-westeurope-001"
-  location            = "westeurope"
+  # By default, this module will not create a resource group, proivde the name here
+  # to use an existing resource group, specify the existing resource group name,
+  # and set the argument to `create_resource_group = true`. Location will be same as existing RG.
+  create_resource_group         = true
+  resource_group_name           = "rg-demo-westeurope-01"
+  vnetwork_name                 = "vnet-demo-westeurope-001"
+  location                      = "westeurope"
+  vnet_address_space            = ["10.1.0.0/16"]
+  gateway_subnet_address_prefix = ["10.1.1.0/27"]
 
-  # Provide valid VNet Address space, Network Watcher, DDoS standard plan activation, and custom DNS servers.  
-  vnet_address_space = ["10.1.0.0/16"]
+  # Adding Standard DDoS Plan, and custom DNS servers (Optional)
+  create_ddos_plan = true
 
-  # (Required) Project_Name, Subscription_type and environment are must to create resource names.
-  project_name      = "tieto-internal"
-  subscription_type = "shared"
-  environment       = "dev"
-
-  # Multiple Subnets, Service delegation, Service Endpoints
+  # Multiple Subnets, Service delegation, Service Endpoints, Network security groups
+  # These are default subnets with required configuration, check README.md for more details
+  # NSG association to be added automatically for all subnets listed here.
+  # First two address ranges from VNet Address space reserved for Gateway And Firewall Subnets.
+  # ex.: For 10.1.0.0/16 address space, usable address range start from 10.1.2.0/24 for all subnets.
+  # subnet name will be set as per Azure naming convention by defaut. expected value here is: <App or project name>
   subnets = {
-    gw_subnet = {
-      subnet_name           = "snet-gw01"
-      subnet_address_prefix = ["10.1.1.0/24"]
+    mgnt_subnet = {
+      subnet_name           = "management"
+      subnet_address_prefix = ["10.1.2.0/24"]
+      service_endpoints     = ["Microsoft.Storage"]
     }
 
-    app_subnet = {
-      subnet_name           = "snet-app01"
-      subnet_address_prefix = ["10.1.2.0/24"]
+    dmz_subnet = {
+      subnet_name           = "appgateway"
+      subnet_address_prefix = ["10.1.3.0/24"]
       service_endpoints     = ["Microsoft.Storage"]
     }
   }
 
   # Adding TAG's to your Azure resources (Required)
-  # ProjectName and Env are already declared above, to use them here, create a varible.
   tags = {
-    ProjectName  = "tieto-internal"
+    ProjectName  = "demo-internal"
     Env          = "dev"
     Owner        = "user@example.com"
     BusinessUnit = "CORP"
@@ -55,57 +62,52 @@ module "vnet" {
 Following example to create a virtual network with subnets, NSG, DDoS protection plan, and network watcher resources.
 
 ```hcl
-# Please read the README.md file for complete details.
-# use locals to define repeated blocks to configure the same values across multiple modules.
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
+  source  = "kumarvna/vnet/azurerm"
+  version = "2.0.0"
 
-  # By default, this module will create a resource group, proivde the name here
+  # By default, this module will not create a resource group, proivde the name here
   # to use an existing resource group, specify the existing resource group name,
-  # and set the argument to `create_resource_group = false`. Location will be same as existing RG.
-  # RG name must follow Azure naming convention. ex.: rg-<App or project name>-<Subscription type>-<Region>-<###>
-  # Resource group is named like this: rg-tieto-internal-prod-westeurope-001
-  resource_group_name = "rg-tieto-internal-shared-westeurope-001"
-  location            = "westeurope"
+  # and set the argument to `create_resource_group = true`. Location will be same as existing RG.
+  create_resource_group          = true
+  resource_group_name            = "rg-demo-westeurope-01"
+  vnetwork_name                  = "vnet-demo-westeurope-001"
+  location                       = "westeurope"
+  vnet_address_space             = ["10.1.0.0/16"]
+  firewall_subnet_address_prefix = ["10.1.0.0/26"]
+  gateway_subnet_address_prefix  = ["10.1.1.0/27"]
 
-  # Provide valid VNet Address space, Network Watcher, DDoS standard plan activation, and custom DNS servers.  
-  vnet_address_space     = ["10.1.0.0/16"]
-  create_ddos_plan       = true
-  dns_servers            = []
-  create_network_watcher = true
-
-  # (Required) Project_Name, Subscription_type and environment are must to create resource names.
-  project_name      = "tieto-internal"
-  subscription_type = "shared"
-  environment       = "dev"
+  # Adding Standard DDoS Plan, and custom DNS servers (Optional)
+  create_ddos_plan = true
 
   # Multiple Subnets, Service delegation, Service Endpoints, Network security groups
   # These are default subnets with required configuration, check README.md for more details
-  # Route_table and NSG association to be added automatically for all subnets listed here.
+  # NSG association to be added automatically for all subnets listed here.
+  # First two address ranges from VNet Address space reserved for Gateway And Firewall Subnets.
+  # ex.: For 10.1.0.0/16 address space, usable address range start from 10.1.2.0/24 for all subnets.
   # subnet name will be set as per Azure naming convention by defaut. expected value here is: <App or project name>
   subnets = {
-
-    gw_subnet = {
-      subnet_name           = "gateway"
-      subnet_address_prefix = ["10.1.1.0/24"]
-      service_endpoints     = ["Microsoft.Storage"]
-    }
-
     mgnt_subnet = {
       subnet_name           = "management"
       subnet_address_prefix = ["10.1.2.0/24"]
-      service_endpoints     = ["Microsoft.Storage"]
-
+      delegation = {
+        name = "testdelegation"
+        service_delegation = {
+          name    = "Microsoft.ContainerInstance/containerGroups"
+          actions = ["Microsoft.Network/virtualNetworks/subnets/join/action", "Microsoft.Network/virtualNetworks/subnets/prepareNetworkPolicies/action"]
+        }
+      }
       nsg_inbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
-        # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["weballow", "200", "Inbound", "Allow", "Tcp", "22", "*", ""],
-        ["weballow1", "201", "Inbound", "Allow", "Tcp", "3389", "*", ""],
+        # To use defaults, use "" without adding any values.
+        ["weballow", "100", "Inbound", "Allow", "Tcp", "80", "*", "0.0.0.0/0"],
+        ["weballow1", "101", "Inbound", "Allow", "", "443", "*", ""],
+        ["weballow2", "102", "Inbound", "Allow", "Tcp", "8080-8090", "*", ""],
       ]
 
       nsg_outbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
-        # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
+        # To use defaults, use "" without adding any values.
         ["ntp_out", "103", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
       ]
     }
@@ -114,25 +116,25 @@ module "vnet" {
       subnet_name           = "appgateway"
       subnet_address_prefix = ["10.1.3.0/24"]
       service_endpoints     = ["Microsoft.Storage"]
+
       nsg_inbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
-        # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["weballow", "100", "Inbound", "Allow", "Tcp", "80", "*", "0.0.0.0/0"],
-        ["weballow1", "101", "Inbound", "Allow", "Tcp", "443", "*", ""],
-
+        # To use defaults, use "" without adding any values.
+        ["weballow", "200", "Inbound", "Allow", "Tcp", "80", "*", ""],
+        ["weballow1", "201", "Inbound", "Allow", "Tcp", "443", "AzureLoadBalancer", ""],
+        ["weballow2", "202", "Inbound", "Allow", "Tcp", "9090", "VirtualNetwork", ""],
       ]
+
       nsg_outbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
-        # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["ntp_out", "103", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
+        # To use defaults, use "" without adding any values.
       ]
     }
   }
 
   # Adding TAG's to your Azure resources (Required)
-  # ProjectName and Env are already declared above, to use them here, create a varible.
   tags = {
-    ProjectName  = "tieto-internal"
+    ProjectName  = "demo-internal"
     Env          = "dev"
     Owner        = "user@example.com"
     BusinessUnit = "CORP"
@@ -166,5 +168,6 @@ Name | Description
 `subnet_ids` | List of IDs of subnets
 `subnet_address_prefixes` | List of address prefix for  subnets
 `network_security_group_ids`|List of Network security groups and ids
+`network_security_group`|Network security group details - Useful for splat expression.
 `ddos_protection_plan` | Azure Network DDoS protection plan
 `network_watcher_id` | ID of Network Watcher

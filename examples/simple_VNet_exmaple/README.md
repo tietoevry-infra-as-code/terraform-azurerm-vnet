@@ -1,45 +1,51 @@
-# Azure Virtual Network Terraform Module
+# Virtual Network resource creation example
 
-This Terraform Module is designed to quickly deploy VNet, Subnets with NSG, service endpoints and delegations. Further security hardening would be recommend to add appropriate NSG rules to use this for any production workloads.
+Configuration in this directory creates a set of Azure network resources. Few of these resources added/excluded as per your requirement.
 
 ## Module Usage
 
 Following example to create a simple virtual network with subnets and network watcher resources. Please see the complete example to add rest of the features in this module.
 
-``` hcl
+```hcl
 module "vnet" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v1.1.0"
+ source  = "github.com/tietoevry-infra-as-code/terraform-azurerm-vnet?ref=v2.0.0"
 
-  # Using Custom names and VNet/subnet Address Prefix (Recommended)
-  resource_group_name = "rg-tieto-internal-shared-westeurope-001"
-  location            = "westeurope"
+  # By default, this module will not create a resource group, proivde the name here
+  # to use an existing resource group, specify the existing resource group name,
+  # and set the argument to `create_resource_group = true`. Location will be same as existing RG.
+  create_resource_group         = true
+  resource_group_name           = "rg-demo-westeurope-01"
+  vnetwork_name                 = "vnet-demo-westeurope-001"
+  location                      = "westeurope"
+  vnet_address_space            = ["10.1.0.0/16"]
+  gateway_subnet_address_prefix = ["10.1.1.0/27"]
 
-  # Provide valid VNet Address space, Network Watcher, DDoS standard plan activation, and custom DNS servers.  
-  vnet_address_space = ["10.1.0.0/16"]
+  # Adding Standard DDoS Plan, and custom DNS servers (Optional)
+  create_ddos_plan = true
 
-  # (Required) Project_Name, Subscription_type and environment are must to create resource names.
-  project_name      = "tieto-internal"
-  subscription_type = "shared"
-  environment       = "dev"
-
-  # Multiple Subnets, Service delegation, Service Endpoints
+  # Multiple Subnets, Service delegation, Service Endpoints, Network security groups
+  # These are default subnets with required configuration, check README.md for more details
+  # NSG association to be added automatically for all subnets listed here.
+  # First two address ranges from VNet Address space reserved for Gateway And Firewall Subnets.
+  # ex.: For 10.1.0.0/16 address space, usable address range start from 10.1.2.0/24 for all subnets.
+  # subnet name will be set as per Azure naming convention by defaut. expected value here is: <App or project name>
   subnets = {
-    gw_subnet = {
-      subnet_name           = "snet-gw01"
-      subnet_address_prefix = ["10.1.1.0/24"]
+    mgnt_subnet = {
+      subnet_name           = "management"
+      subnet_address_prefix = ["10.1.2.0/24"]
+      service_endpoints     = ["Microsoft.Storage"]
     }
 
-    app_subnet = {
-      subnet_name           = "snet-app01"
-      subnet_address_prefix = ["10.1.2.0/24"]
+    dmz_subnet = {
+      subnet_name           = "appgateway"
+      subnet_address_prefix = ["10.1.3.0/24"]
       service_endpoints     = ["Microsoft.Storage"]
     }
   }
 
   # Adding TAG's to your Azure resources (Required)
-  # ProjectName and Env are already declared above, to use them here, create a varible.
   tags = {
-    ProjectName  = "tieto-internal"
+    ProjectName  = "demo-internal"
     Env          = "dev"
     Owner        = "user@example.com"
     BusinessUnit = "CORP"
@@ -52,10 +58,27 @@ module "vnet" {
 
 To run this example you need to execute following Terraform commands
 
-``` hcl
+```hcl
 terraform init
 terraform plan
 terraform apply
 ```
 
 Run `terraform destroy` when you don't need these resources.
+
+## Outputs
+
+Name | Description
+---- | -----------
+`resource_group_name` | The name of the resource group in which resources are created
+`resource_group_id` | The id of the resource group in which resources are created
+`resource_group_location`| The location of the resource group in which resources are created
+`virtual_network_name` | The name of the virtual network.
+`virtual_network_id` |The virtual NetworkConfiguration ID.
+`virtual_network_address_space` | List of address spaces that are used the virtual network.
+`subnet_ids` | List of IDs of subnets
+`subnet_address_prefixes` | List of address prefix for  subnets
+`network_security_group_ids`|List of Network security groups and ids
+`network_security_group`|Network security group details - Useful for splat expression.
+`ddos_protection_plan` | Azure Network DDoS protection plan
+`network_watcher_id` | ID of Network Watcher

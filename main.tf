@@ -1,6 +1,6 @@
-#---------------------------------------------------------
-# Resource Group Creation or selection - Default is "true"
-#----------------------------------------------------------
+#------------------------
+# Local declarations
+#------------------------
 locals {
   resource_group_name = element(coalescelist(data.azurerm_resource_group.rgrp.*.name, azurerm_resource_group.rg.*.name, [""]), 0)
   location            = element(coalescelist(data.azurerm_resource_group.rgrp.*.location, azurerm_resource_group.rg.*.location, [""]), 0)
@@ -16,7 +16,7 @@ resource "azurerm_resource_group" "rg" {
   count    = var.create_resource_group ? 1 : 0
   name     = var.resource_group_name
   location = var.location
-  tags     = merge({ "ResourceName" = format("%s", var.resource_group_name) }, var.tags, )
+  tags     = merge({ "Name" = format("%s", var.resource_group_name) }, var.tags, )
 }
 
 #-------------------------------------
@@ -24,12 +24,12 @@ resource "azurerm_resource_group" "rg" {
 #-------------------------------------
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = lower("vnet-${var.project_name}-${var.subscription_type}-${var.environment}-${local.location}-01")
+  name                = var.vnetwork_name
   location            = local.location
   resource_group_name = local.resource_group_name
   address_space       = var.vnet_address_space
   dns_servers         = var.dns_servers
-  tags                = merge({ "ResourceName" = lower("vnet-${var.project_name}-${var.subscription_type}-${var.environment}-${local.location}-01") }, var.tags, )
+  tags                = merge({ "Name" = format("%s", var.vnetwork_name) }, var.tags, )
 
   dynamic "ddos_protection_plan" {
     for_each = local.if_ddos_enabled
@@ -47,21 +47,20 @@ resource "azurerm_virtual_network" "vnet" {
 
 resource "azurerm_network_ddos_protection_plan" "ddos" {
   count               = var.create_ddos_plan ? 1 : 0
-  name                = lower("${var.project_name}-ddos-protection-plan-${var.subscription_type}")
+  name                = var.ddos_plan_name
   resource_group_name = local.resource_group_name
   location            = local.location
-  tags                = merge({ "ResourceName" = lower("${var.project_name}-ddos-protection-plan-${var.subscription_type}") }, var.tags, )
+  tags                = merge({ "Name" = format("%s", var.ddos_plan_name) }, var.tags, )
 }
 
 #-------------------------------------
 # Network Watcher - Default is "true"
 #-------------------------------------
-
 resource "azurerm_resource_group" "nwatcher" {
   count    = var.create_network_watcher != false ? 1 : 0
   name     = "NetworkWatcherRG"
   location = local.location
-  tags     = merge({ "ResourceName" = "NetworkWatcherRG" }, var.tags, )
+  tags     = merge({ "Name" = "NetworkWatcherRG" }, var.tags, )
 }
 
 resource "azurerm_network_watcher" "nwatcher" {
@@ -69,19 +68,38 @@ resource "azurerm_network_watcher" "nwatcher" {
   name                = "NetworkWatcher_${local.location}"
   location            = local.location
   resource_group_name = azurerm_resource_group.nwatcher.0.name
-  tags                = merge({ "ResourceName" = format("%s", "NetworkWatcher_${local.location}") }, var.tags, )
+  tags                = merge({ "Name" = format("%s", "NetworkWatcher_${local.location}") }, var.tags, )
 }
-#--------------------------------------------
-# Subnets Creation - Depends on VNET Resource
-#--------------------------------------------
-resource "azurerm_subnet" "snet" {
-  for_each             = var.subnets
-  name                 = lower(format("snet-%s-${var.subscription_type}-${local.location}", each.value.subnet_name))
+
+#--------------------------------------------------------------------------------------------------------
+# Subnets Creation with, private link endpoint/servie network policies, service endpoints and Deligation.
+#--------------------------------------------------------------------------------------------------------
+
+resource "azurerm_subnet" "fw-snet" {
+  count                = var.firewall_subnet_address_prefix != null ? 1 : 0
+  name                 = "AzureFirewallSubnet"
   resource_group_name  = local.resource_group_name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = each.value.subnet_address_prefix
-  service_endpoints    = lookup(each.value, "service_endpoints", [])
-  # Applicable to the subnets which used for Private link endpoints or services 
+  address_prefixes     = var.firewall_subnet_address_prefix #[cidrsubnet(element(var.vnet_address_space, 0), 10, 0)]
+  service_endpoints    = var.firewall_service_endpoints
+}
+
+resource "azurerm_subnet" "gw_snet" {
+  count                = var.gateway_subnet_address_prefix != null ? 1 : 0
+  name                 = "GatewaySubnet"
+  resource_group_name  = local.resource_group_name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = var.gateway_subnet_address_prefix #[cidrsubnet(element(var.vnet_address_space, 0), 8, 1)]
+  service_endpoints    = ["Microsoft.Storage"]
+}
+
+resource "azurerm_subnet" "snet" {
+  for_each                                       = var.subnets
+  name                                           = each.value.subnet_name
+  resource_group_name                            = local.resource_group_name
+  virtual_network_name                           = azurerm_virtual_network.vnet.name
+  address_prefixes                               = each.value.subnet_address_prefix
+  service_endpoints                              = lookup(each.value, "service_endpoints", [])
   enforce_private_link_endpoint_network_policies = lookup(each.value, "enforce_private_link_endpoint_network_policies", null)
   enforce_private_link_service_network_policies  = lookup(each.value, "enforce_private_link_service_network_policies", null)
 
@@ -98,7 +116,7 @@ resource "azurerm_subnet" "snet" {
 }
 
 #-----------------------------------------------
-# Network security group - Default is "true"
+# Network security group - Default is "false"
 #-----------------------------------------------
 resource "azurerm_network_security_group" "nsg" {
   for_each            = var.subnets
