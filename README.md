@@ -1,3 +1,5 @@
+> ## This repository is no longer maintained actively. Please visit https://github.com/kumarvna?tab=repositories for the latest updates.
+
 # Azure Virtual Network Terraform Module
 
 Terraform Module to create Azure virtual network with optional NSG, Service delegation, service endpoints, AzureFirewallSubnet and GatewaySubnet creation.
